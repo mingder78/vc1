@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h3>Live Audio Stream</h3>
+<audio id="player" autoplay controls></audio>
+
+<script>
+const audio = document.getElementById("player");
+const mediaSource = new MediaSource();
+audio.src = URL.createObjectURL(mediaSource);
+
+const ws = new WebSocket("ws://localhost:3000");
+ws.binaryType = "arraybuffer";
+
+let sourceBuffer;
+let queue = [];
+let isBufferReady = false;
+let isAppending = false;
+
+mediaSource.addEventListener("sourceopen", () => {
+  console.log("MediaSource opened");
+  try {
+    sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+  } catch (e) {
+    console.error("Failed to create SourceBuffer:", e);
+    return;
+  }
+
+  sourceBuffer.mode = "sequence";
+  sourceBuffer.addEventListener("updateend", appendNextChunk);
+  isBufferReady = true;
+});
+
+ws.onopen = () => console.log("WebSocket connected");
+
+ws.onmessage = (event) => {
+  if (!isBufferReady || !sourceBuffer) {
+    // queue until buffer ready
+    queue.push(event.data);
+    return;
+  }
+  queue.push(event.data);
+  appendNextChunk();
+};
+
+ws.onclose = () => {
+  console.warn("WebSocket closed");
+  // optional: gracefully end media
+  try {
+    if (mediaSource.readyState === "open") mediaSource.endOfStream();
+  } catch (e) {}
+};
+
+function appendNextChunk() {
+  if (!isBufferReady || !sourceBuffer || isAppending) return;
+  if (queue.length === 0 || sourceBuffer.updating) return;
+
+  const chunk = queue.shift();
+  if (!chunk) return;
+
+  try {
+    isAppending = true;
+    sourceBuffer.appendBuffer(chunk);
+  } catch (e) {
+    console.warn("appendBuffer failed:", e);
+  } finally {
+    isAppending = false;
+  }
+}
+</script>
+</body>
+</html>
+

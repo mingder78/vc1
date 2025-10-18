@@ -1,0 +1,36 @@
+<button id="connect">Connect to Stream</button>
+
+<script>
+let ws;
+let audioCtx = new AudioContext();
+let sampleRate = 48000; // must match the rate from your microphone
+
+document.getElementById("connect").onclick = () => {
+  ws = new WebSocket("ws://localhost:3000");
+  ws.binaryType = "arraybuffer";
+
+  ws.onopen = () => console.log("Connected to WebSocket");
+
+  ws.onmessage = event => {
+    // event.data is raw PCM16 ArrayBuffer
+    const pcm16 = new Int16Array(event.data);
+    
+    // Convert 16-bit PCM to Float32 [-1, 1]
+    const float32 = new Float32Array(pcm16.length);
+    for (let i = 0; i < pcm16.length; i++) {
+      float32[i] = pcm16[i] / 0x7FFF;
+    }
+
+    // Create audio buffer and play
+    const buffer = audioCtx.createBuffer(1, float32.length, sampleRate);
+    buffer.getChannelData(0).set(float32);
+
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+  };
+
+  ws.onclose = () => console.log("Disconnected from WebSocket");
+};
+</script>

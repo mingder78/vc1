@@ -1,22 +1,19 @@
 class StreamProcessor extends AudioWorkletProcessor {
   process(inputs) {
     const input = inputs[0];
-    if (input.length > 0) {
-      // Float32Array of the first channel
-      const channelData = input[0];
-      // Convert Float32 to 16-bit PCM
-      const buffer = new ArrayBuffer(channelData.length * 2);
+    if (input && input[0]) {
+      const channel = input[0];
+      const buffer = new ArrayBuffer(channel.length * 2);
       const view = new DataView(buffer);
-      for (let i = 0; i < channelData.length; i++) {
-        let s = Math.max(-1, Math.min(1, channelData[i]));
-        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      for (let i = 0; i < channel.length; i++) {
+        let s = Math.max(-1, Math.min(1, channel[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
       }
-      // Send raw PCM to main thread
       this.port.postMessage(buffer);
     }
     return true;
   }
 }
 
-registerProcessor('stream-processor', StreamProcessor);
+registerProcessor("stream-processor", StreamProcessor);
 
