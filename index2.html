@@ -1,36 +1,94 @@
-<button id="connect">Connect to Stream</button>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebRTC Connectivity with js-libp2p</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" defer src="./index2.js"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-900 font-sans leading-relaxed">
+    <main class="container mx-auto p-6 bg-white shadow-md rounded-lg mt-10">
+      <h3>Live Audio Stream</h3>
+      <audio id="player" autoplay controls></audio>
+      <h1 class="font-bold text-2xl text-blue-600 mb-4">Treehole</h1>
 
-<script>
-let ws;
-let audioCtx = new AudioContext();
-let sampleRate = 48000; // must match the rate from your microphone
+      <ul class="list-disc list-inside mb-6">
+        <li>
+          Opened sessions in the last
+          <span id="output-webtransport-opened-per-unit">0s</span>:
+          <span id="output-webtransport-opened-per-minute">0</span>
+        </li>
+        <li>
+          Max opened connections per minute:
+          <span id="output-webtransport-max-opened-per-minute">0</span>
+        </li>
+        <li>
+          <button
+            id="button-logging-enable"
+            class="bg-blue-500 hover:bg-blue-700 text-white px-1 rounded"
+          >
+            Enable libp2p Logging
+          </button>
+          <button
+            id="button-logging-disable"
+            class="bg-red-500 hover:bg-red-700 text-white px-1 rounded"
+          >
+            Disable libp2p Logging
+          </button>
+        </li>
+      </ul>
 
-document.getElementById("connect").onclick = () => {
-  ws = new WebSocket("ws://localhost:3000");
-  ws.binaryType = "arraybuffer";
+      <section class="my-4">
+        <h2 class="font-bold text-xl text-blue-600 mb-2">Node</h2>
+        <ul class="list-disc list-inside ml-4">
+          <li>
+            Peer ID:
+            <span class="font-bold" id="output-node-peer-id">Unknown</span>
+          </li>
+          <li>Status: <span id="output-node-status">Initialising</span></li>
+          <li>
+            Connections: <span id="output-peer-count">0</span>
+            <ul class="list-disc list-inside ml-6" id="output-peer-types"></ul>
+          </li>
+          <li>
+            Addresses: <span id="output-address-count">0</span>
+            <ul class="list-disc list-inside ml-6" id="output-addresses"></ul>
+          </li>
+        </ul>
+      </section>
 
-  ws.onopen = () => console.log("Connected to WebSocket");
+      <section class="my-6">
+        <h2 class="font-bold text-xl text-blue-600 mb-2">Peers</h2>
+        <p class="flex flex-row items-center gap-2">
+          <label
+            class="block text-gray-700 text-sm font-bold"
+            for="input-multiaddr"
+            >Multiaddr</label
+          >
+          <input
+            class="shadow appearance-none border rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            id="input-multiaddr"
+            type="text"
+            placeholder="/ip4/..."
+          />
+          <button
+            class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            id="button-connect"
+            type="button"
+          >
+            Connect
+          </button>
+        </p>
 
-  ws.onmessage = event => {
-    // event.data is raw PCM16 ArrayBuffer
-    const pcm16 = new Int16Array(event.data);
-    
-    // Convert 16-bit PCM to Float32 [-1, 1]
-    const float32 = new Float32Array(pcm16.length);
-    for (let i = 0; i < pcm16.length; i++) {
-      float32[i] = pcm16[i] / 0x7FFF;
-    }
+        <ul class="list-disc list-inside ml-4" id="output-peer-details"></ul>
+      </section>
 
-    // Create audio buffer and play
-    const buffer = audioCtx.createBuffer(1, float32.length, sampleRate);
-    buffer.getChannelData(0).set(float32);
+      <h2 class="font-bold text-xl text-blue-600 mb-2">Output</h2>
+      <pre class="bg-gray-100 p-4 rounded shadow-inner" id="output"></pre>
 
-    const source = audioCtx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(audioCtx.destination);
-    source.start();
-  };
-
-  ws.onclose = () => console.log("Disconnected from WebSocket");
-};
-</script>
+      <hr class="my-6 border-gray-300" />
+    </main>
+  </body>
+</html>

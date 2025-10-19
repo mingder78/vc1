@@ -8,7 +8,7 @@ import { gossipsub } from '@chainsafe/libp2p-gossipsub'
 import { webSockets } from '@libp2p/websockets'
 import { tcp } from '@libp2p/tcp'
 import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
-import { PUBSUB_PEER_DISCOVERY } from './constants.js'
+import { PUBSUB_PEER_DISCOVERY, PUBSUB_AUDIO } from './constants.js'
 import { WebRTC, WebSockets, WebSocketsSecure, WebTransport, Circuit, WebRTCDirect } from '@multiformats/multiaddr-matcher'
 
 async function main() {
@@ -39,9 +39,14 @@ async function main() {
   })
 
   node.services.pubsub.subscribe(PUBSUB_PEER_DISCOVERY)
+  node.services.pubsub.subscribe(PUBSUB_AUDIO)
 
   console.log('PeerID: ', node.peerId.toString())
   console.log('Multiaddrs: ', node.getMultiaddrs())
+   node.services.pubsub.addEventListener('message', (evt) => {
+    console.log('Received audio chunk from', evt.detail)
+    // evt.detail.data is a Uint8Array of the audio chunk
+  })
 
 
  // Add a listener for messages on this topic
