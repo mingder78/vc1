@@ -8,6 +8,11 @@ import { fromString, toString } from "uint8arrays";
 
 const App = async () => {
   const libp2p = await createNewLibp2p();
+
+    libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
+    libp2p.addEventListener("gossipsub:heartbeat", (event) => {
+      console.log("gossipsub:heartbeat❤️", event);
+    });
   // globalThis.libp2p = libp2p;
   const ws = new WebSocket("ws://localhost:3000"); // Your WebSocket server
   ws.binaryType = "arraybuffer";
@@ -56,9 +61,14 @@ const App = async () => {
   DOM.startstreaming().onclick = async (e) => {
     libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
     libp2p.services.pubsub.addEventListener("message", (evt) => {
-      console.log("sender  audio chunk to", evt.detail.to);
+        if (evt.detail.topic !== 'browser-peer-discovery') {
+            console.log("sender  audio chunk to", evt.detail);
       // evt.detail.data is a Uint8Array of the audio chunk
+        }
+   
     });
+
+    libp2p.services.pubsub.publish(PUBSUB_AUDIO, fromString('asdfasdfadsfadsfads'));
 
     setInterval(() => {
       libp2p.services.pubsub.publish(PUBSUB_AUDIO, fromString("test"));

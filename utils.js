@@ -173,12 +173,10 @@ export async function createNewLibp2p() {
       }),
       identify: identify(),
     },
+
   });
 
-  libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
-  libp2p.addEventListener("gossipsub:heartbeat", (event) => {
-    console.log("gossipsub:heartbeat❤️", event);
-  });
+  await libp2p.services.pubsub.subscribe(PUBSUB_AUDIO)
 
   // 👇 Dial peers discovered via pubsub
   libp2p.addEventListener("peer:discovery", async (evt) => {

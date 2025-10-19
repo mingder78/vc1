@@ -72,7 +72,14 @@ const App = async () => {
       }
   
   const libp2p = await createNewLibp2p();
-  // globalThis.libp2p = libp2p;
+  globalThis.libp2p = libp2p;
+  // node2 publishes "news" every second
+setInterval(() => {
+  libp2p.services.pubsub.publish(topic, uint8ArrayFromString('Bird bird bird, bird is the word!')).catch(err => {
+    console.error(err)
+  })
+}, 1000)
+   globalThis.libp2p = libp2p;
 
   const DOM = {
     startstreaming: () => document.getElementById("startStream"),
@@ -115,6 +122,12 @@ const App = async () => {
     console.log('Received audio chunk from', evt.detail.from)
     // evt.detail.data is a Uint8Array of the audio chunk
   })
+
+   // Add a listener for messages on this topic
+libp2p.services.pubsub.addEventListener('message', (message) => {
+//  console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
+  console.log(`${message.detail.topic}:`, message)
+})
 
 
     console.log("start streaming");
