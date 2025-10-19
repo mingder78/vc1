@@ -1,0 +1,47 @@
+<button id="start">Start Streaming</button>
+<button id="stop">Stop Streaming</button>
+
+<script>
+let audioCtx;
+let sourceNode;
+let ws;
+let audioStream;
+let workletNode;
+
+document.getElementById("start").onclick = async () => {
+  // 1. Open WebSocket
+  ws = new WebSocket("ws://localhost:3000"); // your server
+  ws.binaryType = "arraybuffer";
+
+  // 2. Get microphone input
+  audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+  // 3. Create AudioContext
+  audioCtx = new AudioContext();
+
+  // 4. Add a small worklet to process raw audio
+  await audioCtx.audioWorklet.addModule('processor.js'); // we'll define this next
+  workletNode = new AudioWorkletNode(audioCtx, 'stream-processor');
+
+  // Send audio data to WebSocket
+  workletNode.port.onmessage = event => {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(event.data);
+    }
+  };
+
+  // 5. Connect microphone -> worklet -> (optional) speakers
+  sourceNode = audioCtx.createMediaStreamSource(audioStream);
+  sourceNode.connect(workletNode);
+  // workletNode.connect(audioCtx.destination); // optional: for local playback
+};
+
+document.getElementById("stop").onclick = () => {
+  audioStream.getTracks().forEach(track => track.stop());
+  sourceNode.disconnect();
+  workletNode.disconnect();
+  audioCtx.close();
+  ws.close();
+};
+</script>
+
