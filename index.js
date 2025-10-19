@@ -1,6 +1,7 @@
 // @ts-check
 import { multiaddr } from "@multiformats/multiaddr";
 import { enable, disable } from "@libp2p/logger";
+<<<<<<< HEAD
 import { PUBSUB_PEER_DISCOVERY, PUBSUB_AUDIO } from "./constants";
 import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils";
 import { createNewLibp2p } from "./utils";
@@ -15,6 +16,14 @@ const App = async () => {
   })
 }, 1000)
 
+=======
+import { PUBSUB_PEER_DISCOVERY } from "./constants";
+import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils";
+import { createNewLibp2p } from "./utils";
+
+const App = async () => {
+  const libp2p = await createNewLibp2p();
+>>>>>>> develop
   // globalThis.libp2p = libp2p;
   const ws = new WebSocket("ws://localhost:3000"); // Your WebSocket server
 ws.binaryType = "arraybuffer";

@@ -1,7 +1,11 @@
 {
   "name": "vc1",
   "private": true,
+<<<<<<< HEAD
   "version": "0.1.0",
+=======
+  "version": "0.1.1",
+>>>>>>> develop
   "type": "module",
   "scripts": {
     "bootstrap": "node bootstrap-relay.js",

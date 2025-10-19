@@ -9,4 +9,4 @@ export const bootstrapPeers = [
 ]
 
 export const PUBSUB_PEER_DISCOVERY = 'browser-peer-discovery'
-export const PUBSUB_AUDIO = 'browser-audio'
+export const PUBSUB_AUDIO = 'audio-treehole'
