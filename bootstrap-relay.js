@@ -1,0 +1,29 @@
+/* eslint-disable no-console */
+
+import { noise } from '@chainsafe/libp2p-noise'
+import { yamux } from '@chainsafe/libp2p-yamux'
+import { circuitRelayServer } from '@libp2p/circuit-relay-v2'
+import { identify } from '@libp2p/identify'
+import { webSockets } from '@libp2p/websockets'
+import { createLibp2p } from 'libp2p'
+
+const server = await createLibp2p({
+  addresses: {
+    listen: ['/ip4/127.0.0.1/tcp/0/ws']
+  },
+  transports: [
+    webSockets()
+  ],
+  connectionEncrypters: [noise()],
+  streamMuxers: [yamux()],
+  services: {
+    identify: identify(),
+    relay: circuitRelayServer({
+      reservations: {
+        maxReservations: Infinity
+      }
+    })
+  }
+})
+
+console.log('Relay listening on multiaddr(s): ', server.getMultiaddrs().map((ma) => ma.toString()))
