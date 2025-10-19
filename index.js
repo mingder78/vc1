@@ -1,12 +1,20 @@
 // @ts-check
 import { multiaddr } from "@multiformats/multiaddr";
 import { enable, disable } from "@libp2p/logger";
-import { PUBSUB_PEER_DISCOVERY } from "./constants";
+import { PUBSUB_PEER_DISCOVERY, PUBSUB_AUDIO } from "./constants";
 import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils";
 import { createNewLibp2p } from "./utils";
+import { fromString as uint8ArrayFromString } from 'uint8arrays/from-string'
 
 const App = async () => {
   const libp2p = await createNewLibp2p();
+
+  setInterval(() => {
+  libp2p.services.pubsub.publish(PUBSUB_AUDIO, uint8ArrayFromString('Bird bird bird, bird is the word!')).catch(err => {
+    console.error(err)
+  })
+}, 1000)
+
   // globalThis.libp2p = libp2p;
   const ws = new WebSocket("ws://localhost:3000"); // Your WebSocket server
 ws.binaryType = "arraybuffer";

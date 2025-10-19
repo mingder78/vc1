@@ -1,106 +1,108 @@
 <!DOCTYPE html>
 
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Libp2p + random Audio Chat</title>
-</head>
-<html>
-  <body>
-    <h3>Live Audio Stream - receiver!</h3>
-    <audio id="player" autoplay controls></audio>
-    <h3>Output:</h3>
-    <div id="output"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Libp2p + random Audio Chat</title>
+  </head>
+  <html>
+    <body>
+      <h3>Live Audio Stream - receiver!</h3>
+      <audio id="player" autoplay controls></audio>
+      <h3>Output:</h3>
+      <div id="output"></div>
 
-    <script>
-      const appendOutput = (line) => {
-        const div = document.createElement("div");
-        div.appendChild(document.createTextNode(line));
-        output.append(div);
-      };
+      <script>
+        function appendNextChunk() {
+          if (!isBufferReady || !sourceBuffer || isAppending) return;
+          if (queue.length === 0 || sourceBuffer.updating) return;
 
-      const audio = document.getElementById("player");
-      const output = document.getElementById("output");
+          const chunk = queue.shift();
+          if (!chunk) return;
 
-      const mediaSource = new MediaSource();
-      audio.src = URL.createObjectURL(mediaSource);
-
-      const ws = new WebSocket("ws://localhost:3000"); // playback audio from ws server
-
-      // Fires when the connection is successfully opened
-      ws.onopen = () => {
-        console.log("✅ Connected to WebSocket server");
-        ws.binaryType = "arraybuffer";
-
-        let sourceBuffer;
-        let queue = [];
-        let isBufferReady = false;
-        let isAppending = false;
-
-        mediaSource.addEventListener("sourceopen", () => {
-          console.log("MediaSource opened");
           try {
-            sourceBuffer = mediaSource.addSourceBuffer(
-              'audio/webm; codecs="opus"'
-            );
+            isAppending = true;
+            sourceBuffer.appendBuffer(chunk);
+            appendOutput("chunk");
           } catch (e) {
-            console.error("Failed to create SourceBuffer:", e);
-            return;
+            console.warn("appendBuffer failed:", e);
+          } finally {
+            isAppending = false;
           }
-
-          sourceBuffer.mode = "sequence";
-          sourceBuffer.addEventListener("updateend", appendNextChunk);
-          isBufferReady = true;
-          appendOutput('WebSocket connected 🌈🌈🌈, waiting for streaming')
-        });
-
-        ws.onopen = () => {
-          appendOutput("WebSocket open 🌈");
-          console.log("WebSocket connected");
-        };
-
-        ws.onmessage = (event) => {
-          if (!isBufferReady || !sourceBuffer) {
-            // queue until buffer ready
-            queue.push(event.data);
-            return;
-          }
-          queue.push(event.data);
-          appendNextChunk();
-        };
-
-        ws.onclose = () => {
-          console.warn("WebSocket closed");
-          // optional: gracefully end media
-          try {
-            if (mediaSource.readyState === "open") mediaSource.endOfStream();
-          } catch (e) {}
-        };
-      };
-
-      // Fires when an error occurs (like connection refused)
-      ws.onerror = (err) => {
-        console.error("❌ WebSocket connection failed:", err);
-        appendOutput("❌ WebSocket connection failed:");
-      };
-
-      function appendNextChunk() {
-        if (!isBufferReady || !sourceBuffer || isAppending) return;
-        if (queue.length === 0 || sourceBuffer.updating) return;
-
-        const chunk = queue.shift();
-        if (!chunk) return;
-
-        try {
-          isAppending = true;
-          sourceBuffer.appendBuffer(chunk);
-        } catch (e) {
-          console.warn("appendBuffer failed:", e);
-        } finally {
-          isAppending = false;
         }
-      }
-    </script>
-  </body>
+
+        const appendOutput = (line) => {
+          const div = document.createElement("div");
+          div.appendChild(document.createTextNode(line));
+          output.append(div);
+        };
+
+        const audio = document.getElementById("player");
+        const output = document.getElementById("output");
+
+        const mediaSource = new MediaSource();
+        audio.src = URL.createObjectURL(mediaSource);
+
+        const ws = new WebSocket("ws://localhost:3000"); // playback audio from ws server
+
+        // Fires when the connection is successfully opened
+        ws.onopen = () => {
+          console.log("✅ Connected to WebSocket server");
+          appendOutput("WebSocket connected 🌈🌈🌈, waiting for streaming");
+          ws.binaryType = "arraybuffer";
+
+          let sourceBuffer;
+          let queue = [];
+          let isBufferReady = false;
+          let isAppending = false;
+
+          mediaSource.addEventListener("sourceopen", () => {
+            console.log("MediaSource opened");
+            try {
+              sourceBuffer = mediaSource.addSourceBuffer(
+                'audio/webm; codecs="opus"'
+              );
+            } catch (e) {
+              console.error("Failed to create SourceBuffer:", e);
+              return;
+            }
+
+            sourceBuffer.mode = "sequence";
+            sourceBuffer.addEventListener("updateend", appendNextChunk);
+            isBufferReady = true;
+          });
+
+          ws.onopen = () => {
+            appendOutput("WebSocket open 🌈");
+            console.log("WebSocket connected");
+          };
+
+          ws.onmessage = (event) => {
+            if (!isBufferReady || !sourceBuffer) {
+              // queue until buffer ready
+              queue.push(event.data);
+              return;
+            }
+            queue.push(event.data);
+            appendNextChunk();
+          };
+
+          ws.onclose = () => {
+            console.warn("WebSocket closed");
+            // optional: gracefully end media
+            try {
+              if (mediaSource.readyState === "open") mediaSource.endOfStream();
+            } catch (e) {}
+          };
+        };
+
+        // Fires when an error occurs (like connection refused)
+        ws.onerror = (err) => {
+          console.error("❌ WebSocket connection failed:", err);
+          appendOutput("❌ WebSocket connection failed:");
+        };
+      </script>
+    </body>
+  </html>
 </html>
