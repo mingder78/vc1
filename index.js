@@ -2,17 +2,17 @@
 import { multiaddr } from "@multiformats/multiaddr";
 import { enable, disable } from "@libp2p/logger";
 import { PUBSUB_PEER_DISCOVERY, PUBSUB_AUDIO } from "./constants";
-import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils";
-import { createNewLibp2p } from "./utils";
+import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils.js";
+import { createNewLibp2p } from "./utils.js";
 import { fromString, toString } from "uint8arrays";
 
 const App = async () => {
   const libp2p = await createNewLibp2p();
 
-    libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
-    libp2p.addEventListener("gossipsub:heartbeat", (event) => {
-      console.log("gossipsub:heartbeat❤️", event);
-    });
+  libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
+  libp2p.addEventListener("gossipsub:heartbeat", (event) => {
+    console.log("gossipsub:heartbeat❤️", event);
+  });
   // globalThis.libp2p = libp2p;
   const ws = new WebSocket("ws://localhost:3000"); // Your WebSocket server
   ws.binaryType = "arraybuffer";
@@ -61,14 +61,11 @@ const App = async () => {
   DOM.startstreaming().onclick = async (e) => {
     libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
     libp2p.services.pubsub.addEventListener("message", (evt) => {
-        if (evt.detail.topic !== 'browser-peer-discovery') {
-            console.log("sender  audio chunk to", evt.detail);
-      // evt.detail.data is a Uint8Array of the audio chunk
-        }
-   
+      if (evt.detail.topic !== "browser-peer-discovery") {
+        console.log("sender  audio chunk to", evt.detail);
+        // evt.detail.data is a Uint8Array of the audio chunk
+      }
     });
-
-    libp2p.services.pubsub.publish(PUBSUB_AUDIO, fromString('asdfasdfadsfadsfads'));
 
     setInterval(() => {
       libp2p.services.pubsub.publish(PUBSUB_AUDIO, fromString("test"));

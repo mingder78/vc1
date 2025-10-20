@@ -1,88 +1,81 @@
 // @ts-check
 import { multiaddr } from "@multiformats/multiaddr";
 import { enable, disable } from "@libp2p/logger";
+import { fromString, toString } from "uint8arrays";
 import { PUBSUB_PEER_DISCOVERY, PUBSUB_AUDIO } from "./constants";
 import { update, getPeerTypes, getAddresses, getPeerDetails } from "./utils";
 import { createNewLibp2p } from "./utils";
 
 const App = async () => {
-      const audio = document.getElementById("player");
-      const mediaSource = new MediaSource();
-      audio.src = URL.createObjectURL(mediaSource);
-
-      const ws = new WebSocket("ws://localhost:3000");
-      ws.binaryType = "arraybuffer";
-
-      let sourceBuffer;
-      let queue = [];
-      let isBufferReady = false;
-      let isAppending = false;
-
-      mediaSource.addEventListener("sourceopen", () => {
-        console.log("MediaSource opened");
-        try {
-          sourceBuffer = mediaSource.addSourceBuffer(
-            'audio/webm; codecs="opus"'
-          );
-        } catch (e) {
-          console.error("Failed to create SourceBuffer:", e);
-          return;
-        }
-
-        sourceBuffer.mode = "sequence";
-        sourceBuffer.addEventListener("updateend", appendNextChunk);
-        isBufferReady = true;
-      });
-
-      ws.onopen = () => console.log("WebSocket connected");
-
-      ws.onmessage = (event) => {
-        if (!isBufferReady || !sourceBuffer) {
-          // queue until buffer ready
-          queue.push(event.data);
-          return;
-        }
-        queue.push(event.data);
-        appendNextChunk();
-      };
-
-      ws.onclose = () => {
-        console.warn("WebSocket closed");
-        // optional: gracefully end media
-        try {
-          if (mediaSource.readyState === "open") mediaSource.endOfStream();
-        } catch (e) {}
-      };
-
-      function appendNextChunk() {
-        if (!isBufferReady || !sourceBuffer || isAppending) return;
-        if (queue.length === 0 || sourceBuffer.updating) return;
-
-        const chunk = queue.shift();
-        if (!chunk) return;
-
-        try {
-          isAppending = true;
-          sourceBuffer.appendBuffer(chunk);
-        } catch (e) {
-          console.warn("appendBuffer failed:", e);
-        } finally {
-          isAppending = false;
-        }
-      }
-  
   const libp2p = await createNewLibp2p();
-  globalThis.libp2p = libp2p;
-  // node2 publishes "news" every second
-setInterval(() => {
-  libp2p.services.pubsub.publish(topic, uint8ArrayFromString('Bird bird bird, bird is the word!')).catch(err => {
-    console.error(err)
-  })
-}, 1000)
-   globalThis.libp2p = libp2p;
+
+  //  globalThis.libp2p = libp2p;
+
+  const audio = document.getElementById("player");
+  const mediaSource = new MediaSource();
+  audio.src = URL.createObjectURL(mediaSource);
+
+  const ws = new WebSocket("ws://localhost:3000");
+  ws.binaryType = "arraybuffer";
+
+  let sourceBuffer;
+  let queue = [];
+  let isBufferReady = false;
+  let isAppending = false;
+
+  mediaSource.addEventListener("sourceopen", () => {
+    console.log("MediaSource opened");
+    try {
+      sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+    } catch (e) {
+      console.error("Failed to create SourceBuffer:", e);
+      return;
+    }
+
+    sourceBuffer.mode = "sequence";
+    sourceBuffer.addEventListener("updateend", appendNextChunk);
+    isBufferReady = true;
+  });
+
+  ws.onopen = () => console.log("WebSocket connected");
+
+  ws.onmessage = (event) => {
+    if (!isBufferReady || !sourceBuffer) {
+      // queue until buffer ready
+      queue.push(event.data);
+      return;
+    }
+    queue.push(event.data);
+    appendNextChunk();
+  };
+
+  ws.onclose = () => {
+    console.warn("WebSocket closed");
+    // optional: gracefully end media
+    try {
+      if (mediaSource.readyState === "open") mediaSource.endOfStream();
+    } catch (e) {}
+  };
+
+  function appendNextChunk() {
+    if (!isBufferReady || !sourceBuffer || isAppending) return;
+    if (queue.length === 0 || sourceBuffer.updating) return;
+
+    const chunk = queue.shift();
+    if (!chunk) return;
+
+    try {
+      isAppending = true;
+      sourceBuffer.appendBuffer(chunk);
+    } catch (e) {
+      console.warn("appendBuffer failed:", e);
+    } finally {
+      isAppending = false;
+    }
+  }
 
   const DOM = {
-    startstreaming: () => document.getElementById("startStream"),
+    startlisten: () => document.getElementById("startlisten"),
     nodePeerId: () => document.getElementById("output-node-peer-id"),
     nodeStatus: () => document.getElementById("output-node-status"),
     nodePeerCount: () => document.getElementById("output-peer-count"),
@@ -114,37 +107,23 @@ setInterval(() => {
     update(DOM.nodePeerDetails(), getPeerDetails(libp2p));
   }, 1000);
 
-  DOM.startstreaming().onclick = async (e) => {
-
-
-
-  libp2p.services.pubsub.addEventListener('message', (evt) => {
-    console.log('Received audio chunk from', evt.detail.from)
-    // evt.detail.data is a Uint8Array of the audio chunk
-  })
-
-   // Add a listener for messages on this topic
-libp2p.services.pubsub.addEventListener('message', (message) => {
-//  console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
-  console.log(`${message.detail.topic}:`, message)
-})
-
-
-    console.log("start streaming");
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream, {
-      mimeType: "audio/webm;codecs=opus",
-      audioBitsPerSecond: 64000, // adjust quality (32k–128k typical)
+  DOM.startlisten().onclick = (e) => {
+    console.log('start listening')
+    libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
+    libp2p.services.pubsub.addEventListener("message", (evt) => {
+   //   if (evt.detail.topic !== "browser-peer-discovery") {
+        console.log("sender  audio chunk to", evt.detail);
+        // evt.detail.data is a Uint8Array of the audio chunk
+   //   }
     });
-
-    recorder.ondataavailable = (e) => {
-      if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-        e.data.arrayBuffer().then((buf) => ws.send(buf));
-      }
-    };
-
-    recorder.start(250); // send small chunks every 250ms
-    console.log("Streaming microphone via WebSocket...");
+    // node2 publishes "news" every second
+    setInterval(() => {
+      libp2p.services.pubsub
+        .publish(PUBSUB_AUDIO, fromString("Bird bird bird, bird is the word!"))
+        .catch((err) => {
+          console.error(err);
+        });
+    }, 1000);
   };
 
   DOM.loggingButtonEnable().onclick = (e) => {

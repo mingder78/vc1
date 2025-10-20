@@ -195,5 +195,21 @@ export async function createNewLibp2p() {
       console.error(`Failed to dial peer (${evt.detail.id.toString()}):`, err);
     }
   });
+
+   // ... further usage of the PubSub API
+  libp2p.services.pubsub.subscribe('my-topic')
+  libp2p.services.pubsub.addEventListener('message', (evt) => {
+    console.log(`Received message on topic ${evt.detail.topic}: ${new TextDecoder().decode(evt.detail.data)}`)
+  })
+  libp2p.services.pubsub.publish('my-topic', new TextEncoder().encode('Hello Floodsub!'))
+   const peerList = libp2p.services.pubsub.getSubscribers('my-topic')
+    .map(peerId => {
+      const el = document.createElement('li')
+      el.textContent = peerId.toString()
+      return el
+    })
+
+    console.log(peerList)
+
   return libp2p;
 }
