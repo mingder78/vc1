@@ -48,7 +48,7 @@ export function getPeerTypes(libp2p) {
     .map((conn) => conn.remoteAddr)
     .forEach((ma) => {
       if (WebRTC.exactMatch(ma)) {
-        console.log(ma);
+        //   console.log(ma);
         types["WebRTC"]++;
       } else if (WebRTCDirect.exactMatch(ma)) {
         types["WebRTC Direct"]++;
@@ -99,14 +99,13 @@ export function getPeerDetails(libp2p) {
       }
 
       return `<li>
-      <span><code>${peer.toString()}</code>${
-        nodeType.length > 0 ? `(${nodeType.join(", ")})` : ""
-      }</span>
+      <span><code>${peer.toString()}</code>${nodeType.length > 0 ? `(${nodeType.join(", ")})` : ""
+        }</span>
       <ul class="pl-6">${peerConnections
-        .map((conn) => {
-          return `<li class="break-all text-sm"><button class="bg-teal-500 hover:bg-teal-700 text-white px-2 mx-2 rounded focus:outline-none focus:shadow-outline" onclick="navigator.clipboard.writeText('${conn.remoteAddr.toString()}')">Copy</button>${conn.remoteAddr.toString()} </li>`;
-        })
-        .join("")}</ul>
+          .map((conn) => {
+            return `<li class="break-all text-sm"><button class="bg-teal-500 hover:bg-teal-700 text-white px-2 mx-2 rounded focus:outline-none focus:shadow-outline" onclick="navigator.clipboard.writeText('${conn.remoteAddr.toString()}')">Copy</button>${conn.remoteAddr.toString()} </li>`;
+          })
+          .join("")}</ul>
     </li>`;
     })
     .join("");
@@ -196,20 +195,21 @@ export async function createNewLibp2p() {
     }
   });
 
-   // ... further usage of the PubSub API
+  // ... further usage of the PubSub API
   libp2p.services.pubsub.subscribe('my-topic')
   libp2p.services.pubsub.addEventListener('message', (evt) => {
-    console.log(`Received message on topic ${evt.detail.topic}: ${new TextDecoder().decode(evt.detail.data)}`)
+    const { topic, data } = evt.detail;
+    if (topic !== 'my-topic') return // 👈 ignore other topics
+    console.log(`Received message on ${topic}: ${new TextDecoder().decode(data)}`)
   })
-  libp2p.services.pubsub.publish('my-topic', new TextEncoder().encode('Hello Floodsub!'))
-   const peerList = libp2p.services.pubsub.getSubscribers('my-topic')
+  const peerList = libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO)
     .map(peerId => {
       const el = document.createElement('li')
       el.textContent = peerId.toString()
       return el
     })
 
-    console.log(peerList)
+  console.log('🙋‍♀️🙋🙋🏻‍♂👷subscribers:', peerList)
 
   return libp2p;
 }

@@ -54,7 +54,7 @@ const App = async () => {
     // optional: gracefully end media
     try {
       if (mediaSource.readyState === "open") mediaSource.endOfStream();
-    } catch (e) {}
+    } catch (e) { }
   };
 
   function appendNextChunk() {
@@ -96,8 +96,8 @@ const App = async () => {
   update(DOM.nodeStatus(), "Online");
   update(DOM.outputQuery(), "test");
 
-  libp2p.addEventListener("peer:connect", (event) => {});
-  libp2p.addEventListener("peer:disconnect", (event) => {});
+  libp2p.addEventListener("peer:connect", (event) => { });
+  libp2p.addEventListener("peer:disconnect", (event) => { });
 
   setInterval(() => {
     update(DOM.nodePeerCount(), libp2p.getConnections().length);
@@ -111,18 +111,27 @@ const App = async () => {
     console.log('start listening')
     libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
     libp2p.services.pubsub.addEventListener("message", (evt) => {
-   //   if (evt.detail.topic !== "browser-peer-discovery") {
-        console.log("sender  audio chunk to", evt.detail);
+      if (evt.detail.topic === PUBSUB_AUDIO) {
+        console.log("receover  audio chunk to", evt.detail);
         // evt.detail.data is a Uint8Array of the audio chunk
-   //   }
+      }
     });
     // node2 publishes "news" every second
+    // working
     setInterval(() => {
-      libp2p.services.pubsub
-        .publish(PUBSUB_AUDIO, fromString("Bird bird bird, bird is the word!"))
-        .catch((err) => {
-          console.error(err);
-        });
+      const peerList = libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO)
+        .map(peerId => {
+          const el = document.createElement('li')
+          el.textContent = peerId.toString()
+          return el
+        })
+
+      console.log('🙋‍♀️🙋🙋🏻‍♂👷subscribers:', peerList)
+      //   libp2p.services.pubsub
+      //   .publish(PUBSUB_AUDIO, fromString("Bird bird bird, bird is the word!"))
+      //  .catch((err) => {
+      //    console.error(err);
+      //  });
     }, 1000);
   };
 

@@ -40,8 +40,8 @@ const App = async () => {
   update(DOM.nodeStatus(), "Online");
   update(DOM.outputQuery(), "test");
 
-  libp2p.addEventListener("peer:connect", (event) => {});
-  libp2p.addEventListener("peer:disconnect", (event) => {});
+  libp2p.addEventListener("peer:connect", (event) => { });
+  libp2p.addEventListener("peer:disconnect", (event) => { });
 
   setInterval(() => {
     update(DOM.nodePeerCount(), libp2p.getConnections().length);
@@ -68,7 +68,14 @@ const App = async () => {
     });
 
     setInterval(() => {
-      libp2p.services.pubsub.publish(PUBSUB_AUDIO, fromString("test"));
+      const peerList = libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO)
+        .map(peerId => {
+          const el = document.createElement('li')
+          el.textContent = peerId.toString()
+          return el
+        })
+
+      console.log('🙋‍♀️🙋🙋🏻‍♂👷subscribers:', peerList)
     }, 1000);
 
     console.log("start streaming");

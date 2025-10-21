@@ -51,9 +51,9 @@ async function main() {
 
  // Add a listener for messages on this topic
 node.services.pubsub.addEventListener('message', (message) => {
-//  console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
-  console.log(`${message.detail.topic}:`, message)
-})
+      if (message.detail.topic !== "browser-peer-discovery") {
+    console.log(`${message.detail.topic}:`, new TextDecoder().decode(message.detail.data))
+}})
 
 node.addEventListener('peer:connect', (evt) => {
   const peerId = evt.detail
