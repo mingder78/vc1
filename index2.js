@@ -9,19 +9,17 @@ import { createNewLibp2p } from "./utils";
 const App = async () => {
   const libp2p = await createNewLibp2p();
 
-  //  globalThis.libp2p = libp2p;
-
-  const audio = document.getElementById("player");
-  const mediaSource = new MediaSource();
-  audio.src = URL.createObjectURL(mediaSource);
-
-  const ws = new WebSocket("ws://localhost:3000");
-  ws.binaryType = "arraybuffer";
-
   let sourceBuffer;
   let queue = [];
   let isBufferReady = false;
   let isAppending = false;
+  //  globalThis.libp2p = libp2p;
+
+  console.log('start listening')
+
+  const audio = document.getElementById("player");
+  const mediaSource = new MediaSource();
+  audio.src = URL.createObjectURL(mediaSource);
 
   mediaSource.addEventListener("sourceopen", () => {
     console.log("MediaSource opened");
@@ -37,25 +35,39 @@ const App = async () => {
     isBufferReady = true;
   });
 
-  ws.onopen = () => console.log("WebSocket connected");
 
-  ws.onmessage = (event) => {
-    if (!isBufferReady || !sourceBuffer) {
-      // queue until buffer ready
-      queue.push(event.data);
-      return;
+  libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
+  libp2p.services.pubsub.addEventListener("message", (evt) => {
+    if (evt.detail.topic === PUBSUB_AUDIO) {
+      console.log("receover  audio chunk to", evt.detail);
+      // evt.detail.data is a Uint8Array of the audio chunk
+      if (!isBufferReady || !sourceBuffer) {
+        // queue until buffer ready
+        queue.push(evt.detail.data);
+        return;
+      }
+      queue.push(evt.detail.data);
+      appendNextChunk();
+
     }
-    queue.push(event.data);
-    appendNextChunk();
-  };
+  });
+  // node2 publishes "news" every second
+  // working
+  setInterval(() => {
+    const peerList = libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO)
+      .map(peerId => {
+        const el = document.createElement('li')
+        el.textContent = peerId.toString()
+        return el
+      })
 
-  ws.onclose = () => {
-    console.warn("WebSocket closed");
-    // optional: gracefully end media
-    try {
-      if (mediaSource.readyState === "open") mediaSource.endOfStream();
-    } catch (e) { }
-  };
+    console.log('🙋‍♀️🙋🙋🏻‍♂👷subscribers:', peerList)
+    //   libp2p.services.pubsub
+    //   .publish(PUBSUB_AUDIO, fromString("Bird bird bird, bird is the word!"))
+    //  .catch((err) => {
+    //    console.error(err);
+    //  });
+  }, 1000);
 
   function appendNextChunk() {
     if (!isBufferReady || !sourceBuffer || isAppending) return;
@@ -108,12 +120,42 @@ const App = async () => {
   }, 1000);
 
   DOM.startlisten().onclick = (e) => {
+
+
     console.log('start listening')
+
+    const audio = document.getElementById("player");
+    const mediaSource = new MediaSource();
+    audio.src = URL.createObjectURL(mediaSource);
+
+    mediaSource.addEventListener("sourceopen", () => {
+      console.log("MediaSource opened");
+      try {
+        sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
+      } catch (e) {
+        console.error("Failed to create SourceBuffer:", e);
+        return;
+      }
+
+      sourceBuffer.mode = "sequence";
+      sourceBuffer.addEventListener("updateend", appendNextChunk);
+      isBufferReady = true;
+    });
+
+
     libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
     libp2p.services.pubsub.addEventListener("message", (evt) => {
       if (evt.detail.topic === PUBSUB_AUDIO) {
         console.log("receover  audio chunk to", evt.detail);
         // evt.detail.data is a Uint8Array of the audio chunk
+        if (!isBufferReady || !sourceBuffer) {
+          // queue until buffer ready
+          queue.push(evt.detail.data);
+          return;
+        }
+        queue.push(evt.detail.data);
+        appendNextChunk();
+
       }
     });
     // node2 publishes "news" every second

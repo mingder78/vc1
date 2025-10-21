@@ -10,4 +10,4 @@ export const bootstrapPeers = [
 
 export const PUBSUB_PEER_DISCOVERY = 'browser-peer-discovery'
 export const PUBSUB_AUDIO = 'audio-treehole'
-export const RELAY_MULTIADDR = '/ip4/127.0.0.1/tcp/9001/ws/p2p/12D3KooWPcgMkRNoBnACjXSRgy4ikHRgArwRZRRB54YQqX1FNZen'
+export const RELAY_MULTIADDR = '/ip4/127.0.0.1/tcp/9001/ws/p2p/12D3KooWSAhhrVEvfBmuYr9a4wPijM5X8HWwHyNZxz7iRdit7oZL'

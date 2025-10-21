@@ -86,6 +86,17 @@ const App = async () => {
     });
 
     recorder.ondataavailable = (e) => {
+      if (e.data.size > 0 && libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO).length >= 2) {
+        // Publish audio chunk to PUBSUB_AUDIO topic
+        libp2p.services.pubsub.publish(PUBSUB_AUDIO, new Uint8Array(e.data))
+          .then(() => {
+            console.log("Published audio chunk to PUBSUB_AUDIO", e.data.size);
+          }
+          )
+          .catch((err) => {
+            console.error("Error publishing audio chunk:", err);
+          });
+      }
       if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
         e.data.arrayBuffer().then((buf) => ws.send(buf));
       }
