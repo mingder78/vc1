@@ -85,20 +85,22 @@ const App = async () => {
       audioBitsPerSecond: 64000, // adjust quality (32k–128k typical)
     });
 
-    recorder.ondataavailable = (e) => {
+    recorder.ondataavailable = async (e) => {
       if (e.data.size > 0 && libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO).length >= 2) {
         // Publish audio chunk to PUBSUB_AUDIO topic
-        libp2p.services.pubsub.publish(PUBSUB_AUDIO, new Uint8Array(e.data))
-          .then(() => {
-            console.log("Published audio chunk to PUBSUB_AUDIO", e.data.size);
-          }
-          )
-          .catch((err) => {
+        if (e.data.size === 0) return;
+
+        const arrayBuffer = await e.data.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+
+        if (libp2p.services.pubsub.getSubscribers(PUBSUB_AUDIO).length >= 2) {
+          try {
+            await libp2p.services.pubsub.publish(PUBSUB_AUDIO, uint8);
+            console.log("Published audio chunk", uint8.byteLength);
+          } catch (err) {
             console.error("Error publishing audio chunk:", err);
-          });
-      }
-      if (e.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-        e.data.arrayBuffer().then((buf) => ws.send(buf));
+          }
+        }
       }
     };
 

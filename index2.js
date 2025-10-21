@@ -15,6 +15,21 @@ const App = async () => {
   let isAppending = false;
   //  globalThis.libp2p = libp2p;
 
+  function appendNextChunk() {
+    if (!isBufferReady || !sourceBuffer || isAppending || queue.length === 0 || sourceBuffer.updating) return;
+    const chunk = queue.shift();
+    if (!chunk) return;
+
+    try {
+      isAppending = true;
+      sourceBuffer.appendBuffer(chunk);
+    } catch (e) {
+      console.warn("appendBuffer failed:", e);
+    } finally {
+      isAppending = false;
+    }
+  }
+
   console.log('start listening')
 
   const audio = document.getElementById("player");
@@ -36,20 +51,17 @@ const App = async () => {
   });
 
 
-  libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
+  await libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
   libp2p.services.pubsub.addEventListener("message", (evt) => {
-    if (evt.detail.topic === PUBSUB_AUDIO) {
-      console.log("receover  audio chunk to", evt.detail);
-      // evt.detail.data is a Uint8Array of the audio chunk
-      if (!isBufferReady || !sourceBuffer) {
-        // queue until buffer ready
-        queue.push(evt.detail.data);
-        return;
-      }
-      queue.push(evt.detail.data);
-      appendNextChunk();
-
+    if (evt.detail.topic !== PUBSUB_AUDIO) return;
+    console.log("Received audio chunk via pubsub", evt.detail);
+    const chunk = evt.detail.data; // Uint8Array
+    if (!isBufferReady || !sourceBuffer) {
+      queue.push(chunk);
+      return;
     }
+    queue.push(chunk);
+    appendNextChunk();
   });
   // node2 publishes "news" every second
   // working
@@ -67,24 +79,10 @@ const App = async () => {
     //  .catch((err) => {
     //    console.error(err);
     //  });
-  }, 1000);
+  }, 10000);
 
-  function appendNextChunk() {
-    if (!isBufferReady || !sourceBuffer || isAppending) return;
-    if (queue.length === 0 || sourceBuffer.updating) return;
 
-    const chunk = queue.shift();
-    if (!chunk) return;
 
-    try {
-      isAppending = true;
-      sourceBuffer.appendBuffer(chunk);
-    } catch (e) {
-      console.warn("appendBuffer failed:", e);
-    } finally {
-      isAppending = false;
-    }
-  }
 
   const DOM = {
     startlisten: () => document.getElementById("startlisten"),
@@ -120,44 +118,8 @@ const App = async () => {
   }, 1000);
 
   DOM.startlisten().onclick = (e) => {
+    console.log('start logging listen ')
 
-
-    console.log('start listening')
-
-    const audio = document.getElementById("player");
-    const mediaSource = new MediaSource();
-    audio.src = URL.createObjectURL(mediaSource);
-
-    mediaSource.addEventListener("sourceopen", () => {
-      console.log("MediaSource opened");
-      try {
-        sourceBuffer = mediaSource.addSourceBuffer('audio/webm; codecs="opus"');
-      } catch (e) {
-        console.error("Failed to create SourceBuffer:", e);
-        return;
-      }
-
-      sourceBuffer.mode = "sequence";
-      sourceBuffer.addEventListener("updateend", appendNextChunk);
-      isBufferReady = true;
-    });
-
-
-    libp2p.services.pubsub.subscribe(PUBSUB_AUDIO);
-    libp2p.services.pubsub.addEventListener("message", (evt) => {
-      if (evt.detail.topic === PUBSUB_AUDIO) {
-        console.log("receover  audio chunk to", evt.detail);
-        // evt.detail.data is a Uint8Array of the audio chunk
-        if (!isBufferReady || !sourceBuffer) {
-          // queue until buffer ready
-          queue.push(evt.detail.data);
-          return;
-        }
-        queue.push(evt.detail.data);
-        appendNextChunk();
-
-      }
-    });
     // node2 publishes "news" every second
     // working
     setInterval(() => {
